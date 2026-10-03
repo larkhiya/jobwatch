@@ -37,3 +37,14 @@ filters:
   exclude_keywords:  # any match rejects the job, even if it matched above
     - commission only
     - unpaid
+
+notify:
+  channel: telegram       # "telegram" or "ntfy" (secrets come from env vars / GitHub Secrets)
+  digest_threshold: 5     # more new matches than this in one run -> one digest message instead
+  ntfy_server: https://ntfy.sh
+
+health:
+  utc_offset_hours: 8                # your time zone, used for the daily heartbeat (Philippines = 8)
+  heartbeat_hour: 8                  # daily "alive" message on the first run after 08:00
+  parser_alert_cooldown_hours: 24    # "parser may be broken" alert at most this often
+  error_alert_cooldown_hours: 6      # "run failed" alert at most this often

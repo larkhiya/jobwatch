@@ -7,16 +7,31 @@ import logging
 import sys
 from pathlib import Path
 
-from .app import run
-from .config import DEFAULT_CONFIG_PATH, load_config
+from .app import run_and_report
+from .config import DEFAULT_CONFIG_PATH, Config, ConfigError, load_config, require_secrets
+from .notify import Notifier, NtfyNotifier, PrintNotifier, TelegramNotifier
+
+log = logging.getLogger("jobwatch")
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     _setup_output()
-    config = load_config(args.config)
-    run(config, dry_run=args.dry_run, seed=args.seed)
-    return 0
+    try:
+        config = load_config(args.config)
+        notifier = PrintNotifier() if args.dry_run else _make_notifier(config)
+    except ConfigError as exc:
+        log.error("Configuration problem: %s", exc)
+        return 2
+    return run_and_report(config, notifier, dry_run=args.dry_run, seed=args.seed)
+
+
+def _make_notifier(config: Config) -> Notifier:
+    require_secrets(config)
+    secrets = config.secrets
+    if config.notify.channel == "ntfy":
+        return NtfyNotifier(secrets.ntfy_topic, config.notify.ntfy_server)
+    return TelegramNotifier(secrets.telegram_bot_token, secrets.telegram_chat_id)
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
