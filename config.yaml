@@ -8,7 +8,7 @@ source:
   pages: 1  # 30 jobs is ~2 hours of postings; raise to 2 only if you see "possible gap" warnings.
 
 http:
-  user_agent: "jobwatch/0.1 (personal job alert bot; one request every 15 minutes)"
+  user_agent: "jobwatch/0.1 (+https://github.com/larkhiya/jobwatch; personal job alert, one request every 15 minutes)"
   timeout_seconds: 20
   max_retries: 3
 
