@@ -2,28 +2,16 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from jobwatch.app import run
-from jobwatch.config import Config
-from jobwatch.fetch import HttpSettings
 from jobwatch.parse import Job
 from jobwatch.store import load_seen, mark_seen, prune, save_seen, unseen
 
-from .conftest import load_fixture
+from .conftest import load_fixture, make_config
 
 NOW = datetime(2026, 10, 4, 12, 0, tzinfo=timezone.utc)
 
 
 def job(job_id: str, title: str = "Web Developer") -> Job:
     return Job(id=job_id, title=title, url=f"https://x.test/{job_id}", posted=None, salary=None, snippet="", job_type=None)
-
-
-def make_config(tmp_path) -> Config:
-    return Config(
-        source_url="https://www.onlinejobs.ph/jobseekers/jobsearch",
-        pages=1,
-        http=HttpSettings(user_agent="test"),
-        state_dir=tmp_path / "state",
-        retention_days=45,
-    )
 
 
 def fixture_fetch(url, pages, http):

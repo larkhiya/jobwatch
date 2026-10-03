@@ -15,3 +15,25 @@ http:
 state:
   dir: state            # seen.json lives here; the workflow commits it back to the repo
   retention_days: 45    # forget job IDs older than this so seen.json stays small
+
+filters:
+  # Checked against the job title, the description snippet and the category tags.
+  # Case-insensitive, whole words; spaces/hyphens are interchangeable
+  # ("full stack" also matches "Full-Stack" and "fullstack"); a plural "s" is allowed.
+  include_keywords:  # a job must match at least one of these
+    - developer
+    - programmer
+    - software engineer
+    - web developer
+    - full stack
+    - frontend
+    - front end   # also catches "front-end"
+    - backend
+    - back end    # also catches "back-end"
+    - react
+    - laravel
+    - python
+    - wordpress developer
+  exclude_keywords:  # any match rejects the job, even if it matched above
+    - commission only
+    - unpaid

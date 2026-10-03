@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from .fetch import HttpSettings
+from .filters import KeywordFilter
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
 
@@ -24,6 +25,7 @@ class Config:
     http: HttpSettings
     state_dir: Path
     retention_days: int
+    filter: KeywordFilter
 
     @property
     def seen_path(self) -> Path:
@@ -41,6 +43,7 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> Config:
     source = _section(raw, "source")
     http = _section(raw, "http")
     state = _section(raw, "state")
+    filters = _section(raw, "filters")
 
     url = _require(source, "url", str, "source")
     if not url.startswith("https://"):
@@ -56,6 +59,10 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> Config:
         ),
         state_dir=Path(_require(state, "dir", str, "state")),
         retention_days=_int_in_range(state, "retention_days", "state", 1, 365, default=45),
+        filter=KeywordFilter(
+            include=_keywords(filters, "include_keywords", required=True),
+            exclude=_keywords(filters, "exclude_keywords", required=False),
+        ),
     )
 
 
@@ -78,3 +85,12 @@ def _int_in_range(section: dict[str, Any], key: str, where: str, low: int, high:
     if not isinstance(value, int) or isinstance(value, bool) or not low <= value <= high:
         raise ConfigError(f"{where}.{key} must be a whole number from {low} to {high}")
     return value
+
+
+def _keywords(section: dict[str, Any], key: str, required: bool) -> tuple[str, ...]:
+    value = section.get(key) or []
+    if not isinstance(value, list) or not all(isinstance(k, str) and k.strip() for k in value):
+        raise ConfigError(f"filters.{key} must be a list of words/phrases")
+    if required and not value:
+        raise ConfigError(f"filters.{key} needs at least one keyword")
+    return tuple(k.strip() for k in value)

@@ -1,4 +1,4 @@
-"""One run of the pipeline: fetch -> parse -> dedupe -> save state."""
+"""One run of the pipeline: fetch -> parse -> dedupe -> filter -> save state."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ PageFetcher = Callable[[str, int, HttpSettings], list[str]]
 class RunSummary:
     found: int = 0
     new: int = 0
+    matched: int = 0
     seeded: bool = False
 
 
@@ -39,16 +40,19 @@ def run(
 
     jobs = [job for html in fetch(config.source_url, config.pages, config.http) for job in parse_jobs(html)]
     new = unseen(jobs, seen)
-    summary = RunSummary(found=len(jobs), new=len(new), seeded=seeding)
-    log.info("Listings found: %d | new: %d", summary.found, summary.new)
+    matched = [] if seeding else config.filter.apply(new)
+    summary = RunSummary(found=len(jobs), new=len(new), matched=len(matched), seeded=seeding)
+    log.info("Listings found: %d | new: %d | matched: %d", summary.found, summary.new, summary.matched)
 
     if seeding:
         log.info("Seeding: recording %d current listings as seen without notifying", len(new))
     else:
         _warn_if_gap(jobs, new)
+        for job in matched:
+            log.info("Match (%s): [%s] %s", config.filter.matched_keyword(job), job.id, job.title)
         if dry_run:
-            for job in new:
-                print(f"NEW {describe(job)}")
+            for job in matched:
+                print(f"WOULD NOTIFY {describe(job)}")
 
     mark_seen(seen, new, now)
     removed = prune(seen, now, config.retention_days)

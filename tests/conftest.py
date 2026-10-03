@@ -1,13 +1,22 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 import requests
 
+from jobwatch.config import Config, load_config
+
 FIXTURES = Path(__file__).parent / "fixtures"
+CONFIG_PATH = Path(__file__).parents[1] / "config.yaml"
 
 
 def load_fixture(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def make_config(tmp_path: Path, **overrides) -> Config:
+    """The real config.yaml, but with state kept in a temporary folder."""
+    return replace(load_config(CONFIG_PATH), state_dir=tmp_path / "state", **overrides)
 
 
 @pytest.fixture(autouse=True)
