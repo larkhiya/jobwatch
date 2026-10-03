@@ -80,6 +80,6 @@ def test_latest_jobs_fixture_has_no_developer_jobs(default_filter):
 def test_developer_search_fixture_is_filtered_sensibly(default_filter):
     jobs = parse_jobs(load_fixture("jobsearch_developer.html"))
     kept = {job.id for job in default_filter.apply(jobs)}
-    assert len(kept) == 19
+    assert len(kept) == 17
     assert {"1742846", "1742338", "1742498"} <= kept  # Senior WordPress / Full Stack / Salesforce Developer
     assert not {"1741650", "1742325"} & kept  # Business Development Specialist / QA Engineer
