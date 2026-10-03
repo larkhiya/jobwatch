@@ -1,0 +1,59 @@
+name: jobwatch
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"  # every 15 minutes (UTC). GitHub may delay scheduled runs at busy times.
+  workflow_dispatch:         # lets you start a run by hand from the Actions tab
+    inputs:
+      dry_run:
+        description: "Dry run: print what would be sent; send nothing, save nothing"
+        type: boolean
+        default: false
+
+# Never run two checks at once: an overlapping run could send the same job twice
+# or push conflicting state. A queued run waits instead of being cancelled.
+concurrency:
+  group: jobwatch
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # needed to commit state/ back to the repo
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip  # reuses downloaded packages between runs
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for new jobs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python -m jobwatch ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      # Runs even if the check failed, so alert cooldowns and partial progress are
+      # saved (otherwise a failing run would re-send its error alert every time).
+      - name: Save state
+        if: always() && !inputs.dry_run
+        run: |
+          [ -d state ] || { echo "No state to save."; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state
+          if git diff --cached --quiet; then
+            echo "State unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "Update job state [skip ci]"
+          # If you pushed a change (e.g. to config.yaml) during this run, rebase onto it first.
+          git push || { git pull --rebase && git push; }
