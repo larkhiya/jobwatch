@@ -1,0 +1,13 @@
+# jobwatch settings. No secrets here: tokens come from environment variables / GitHub Secrets.
+
+source:
+  # The newest jobs across ALL categories (sorted newest first, 30 per page).
+  # We fetch this one page and filter locally, so one request covers every keyword.
+  # Alternative: https://www.onlinejobs.ph/jobseekers/jobsearch?jobkeyword=developer
+  url: https://www.onlinejobs.ph/jobseekers/jobsearch
+  pages: 1  # 30 jobs is ~2 hours of postings; raise to 2 only if you see "possible gap" warnings.
+
+http:
+  user_agent: "jobwatch/0.1 (personal job alert bot; one request every 15 minutes)"
+  timeout_seconds: 20
+  max_retries: 3
