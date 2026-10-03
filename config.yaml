@@ -11,3 +11,7 @@ http:
   user_agent: "jobwatch/0.1 (personal job alert bot; one request every 15 minutes)"
   timeout_seconds: 20
   max_retries: 3
+
+state:
+  dir: state            # seen.json lives here; the workflow commits it back to the repo
+  retention_days: 45    # forget job IDs older than this so seen.json stays small

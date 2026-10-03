@@ -22,6 +22,12 @@ class Config:
     source_url: str
     pages: int
     http: HttpSettings
+    state_dir: Path
+    retention_days: int
+
+    @property
+    def seen_path(self) -> Path:
+        return self.state_dir / "seen.json"
 
 
 def load_config(path: Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -34,6 +40,7 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> Config:
 
     source = _section(raw, "source")
     http = _section(raw, "http")
+    state = _section(raw, "state")
 
     url = _require(source, "url", str, "source")
     if not url.startswith("https://"):
@@ -47,6 +54,8 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> Config:
             timeout_seconds=_int_in_range(http, "timeout_seconds", "http", 5, 60, default=20),
             max_retries=_int_in_range(http, "max_retries", "http", 0, 3, default=3),
         ),
+        state_dir=Path(_require(state, "dir", str, "state")),
+        retention_days=_int_in_range(state, "retention_days", "state", 1, 365, default=45),
     )
 
 
