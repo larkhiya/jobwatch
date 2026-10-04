@@ -5,6 +5,14 @@ for newly posted developer jobs and sends each new match to your phone through [
 (a free push-notification app that needs no account), or optionally Telegram.
 It runs on GitHub Actions, so your computer doesn't need to be on, and everything it uses is free.
 
+Optional extras, each set up separately:
+
+- **A web app you can install on your iPhone.** It's an inbox of every matching job where you mark
+  Save / Applied / Skip and keep notes. See [The web app and iPhone](#the-web-app-and-iphone-optional).
+- **AI with Claude, on your own Claude plan.** You get a fit score in each alert, and an **Analyze**
+  button that lists your strengths, your gaps, how to become a stronger candidate, and a draft
+  application. See [AI features](#ai-features-optional).
+
 ## How it works
 
 Every run is short and does the same steps, then exits:
@@ -106,6 +114,137 @@ only reads them from environment variables.
 
 ---
 
+## The web app and iPhone (optional)
+
+A private inbox for every matching job: tabs for New / Saved / Applied / Skipped, search, notes, and links to
+each post. Behind it is a free [Supabase](https://supabase.com) database; the bot fills it every run.
+On iPhone it installs from Safari like a normal app. There's no App Store and no cost.
+
+```
+GitHub Actions bot ──writes jobs──▶ Supabase (private database) ◀──reads/writes── web app (GitHub Pages)
+```
+
+Before setup, the site shows **demo data**, so you can try it first.
+
+### A. Create the database (about 10 minutes)
+
+1. Go to [supabase.com](https://supabase.com), click **Start your project**, and **sign in with GitHub**.
+2. Click **New project**:
+   - **Name:** `jobwatch`
+   - **Database password:** let it generate one and save it in your password manager. jobwatch never
+     needs it.
+   - **Region:** Southeast Asia (Singapore)
+   - **Plan:** Free
+
+   Then click **Create**.
+3. Open **SQL Editor** → **New query**, paste the whole of [`supabase/schema.sql`](supabase/schema.sql),
+   and click **Run**. You should see "Success. No rows returned".
+4. Open **Project Settings → API Keys** and note three things:
+   - your **Project URL**, like `https://abcdefghijkl.supabase.co`
+   - the **publishable key** (`sb_publishable_...`)
+   - a **secret key** (`sb_secret_...`). If there isn't one, create it on that page.
+
+   The secret key can read and change everything, so never paste it anywhere except the GitHub secret
+   below.
+5. Open **Authentication → URL Configuration**. Set **Site URL** to
+   `https://<your-username>.github.io/jobwatch/`, and add the same address under **Redirect URLs**.
+6. Open **Authentication → Emails → Magic Link** (the sign-in email template). Add this line to the
+   message body and save:
+
+   ```
+   Your code: {{ .Token }}
+   ```
+
+   That puts a 6-digit code in the sign-in email. The iPhone app needs it (see C below).
+
+### B. Connect GitHub (about 5 minutes)
+
+In your repo, go to **Settings → Secrets and variables → Actions**:
+
+| Tab           | Name                       | Value                                   |
+| ------------- | -------------------------- | --------------------------------------- |
+| **Secrets**   | `SUPABASE_SECRET_KEY`      | the `sb_secret_...` key                 |
+| **Variables** | `SUPABASE_URL`             | your Project URL                        |
+| **Variables** | `SUPABASE_PUBLISHABLE_KEY` | the `sb_publishable_...` key            |
+
+The URL and publishable key are *variables*, not secrets, because they're meant to be public: the web
+page needs them. Your data is protected by sign-in and the database's access rules, not by hiding
+these two values.
+
+Then go to **Settings → Pages**, set **Source** to **GitHub Actions**, open **Actions → web → Run
+workflow**, and wait about a minute. The app is now at `https://<your-username>.github.io/jobwatch/`.
+From the next bot run on, new listings appear in it.
+
+### C. Sign in, and lock it to you
+
+1. Open the app, enter your email, then type the code from the email. On a laptop, tapping the link in
+   the email works too.
+2. The first time, you'll see **Almost there** with a short SQL snippet. Run it in the Supabase **SQL
+   Editor** and reload. That adds you to the allow-list. Only allow-listed accounts can see any data, so
+   even if a stranger signed up they'd see nothing.
+3. Close sign-ups: **Authentication → Sign In / Providers → Email**, turn off **Allow new users to sign
+   up**, and save.
+
+### D. Install on your iPhone
+
+1. Open `https://<your-username>.github.io/jobwatch/` in **Safari**. It has to be Safari: other browsers
+   on iPhone can't add web apps to the Home Screen.
+2. Tap **Share** (the square with an arrow), then **Add to Home Screen**, then **Add**.
+3. Open **jobwatch** from your Home Screen and sign in with an emailed **code**. An app on the Home
+   Screen keeps its own login, separate from Safari, so a sign-in link would log in Safari instead of the
+   app. It stays signed in after that.
+
+It needs an internet connection, as the jobs live in the database. Your alerts still come through ntfy.
+
+---
+
+## AI features (optional)
+
+Claude reads each new match and your profile, and gives a **fit score (0–100) with a one-line reason** in
+the alert and the app. Tap **Analyze with AI** on any job for a deeper look: strengths, gaps, red flags,
+**how to become a stronger candidate**, and a **draft application** to edit and send yourself. It never
+applies for you.
+
+**What it costs:** it runs on your Claude plan through the
+[Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview), so there's no separate bill. It
+uses the same usage limits as your normal Claude chats and Claude Code, so the bot keeps it small:
+- **Batching:** each run scores all its new matches in one request.
+- **Daily caps:** see `ai:` in `config.yaml`.
+- **Usage report:** the daily heartbeat says how many tokens it used.
+
+If you hit a limit, alerts simply go out without scores until it resets.
+
+**Set it up** (needs the web app above):
+
+1. **Write your profile.** In the app, tap **Profile** and describe your skills, years of experience, real
+   projects, your portfolio link, the hours and pay you want, and what you don't want. Claude compares
+   every job against this, so specific beats short. Don't put passwords or ID numbers in it.
+2. **Get a token for your Claude plan.** On your computer, install
+   [Claude Code](https://code.claude.com/docs/en/setup) if you haven't, then run:
+
+   ```bash
+   claude setup-token
+   ```
+
+   It opens a browser to sign in, then prints a long token. The token lasts one year, and is a key to your
+   Claude plan, so treat it like a password.
+3. In GitHub **Settings → Secrets and variables → Actions**:
+   - **Secrets:** add `CLAUDE_CODE_OAUTH_TOKEN` with that token.
+   - **Variables:** add `AI_ENABLED` with the value `true`.
+4. Re-run **Actions → web** so the app shows the AI buttons, then run **Actions → jobwatch** once. Its log
+   should contain lines like `AI: scored 2 of 2 jobs (3,100 in / 400 out tokens)`.
+
+**Tuning** (the `ai:` section of `config.yaml`):
+- **`max_scores_per_day` / `max_analyses_per_day`:** your daily caps.
+- **`min_score_to_alert`:** for example `50` means only jobs Claude scores 50+ ping your phone. The rest
+  still show in the app.
+- **`model`:** which Claude model it uses.
+- **`web.app_url`:** set it to your app's address so "Analysis ready" alerts open the app.
+
+**To turn it off:** set the `AI_ENABLED` variable to `false`, then re-run **Actions → web**.
+
+---
+
 ## Day to day
 
 ### Messages you'll get
@@ -117,6 +256,8 @@ only reads them from environment variables.
 | "jobwatch heartbeat"            | once a day, on the first run after 08:00 PHT: listings checked, jobs sent, runs, errors |
 | "jobwatch: parser may be broken"| the page loaded but no jobs were found (at most once per 24h)                 |
 | "jobwatch: run failed"          | an error happened (at most once per 6h); the Actions run is also marked red   |
+| "Fit 82/100 · apply: …" line    | (AI on) Claude's fit score and reason, at the top of a job alert               |
+| "Analysis ready: …"             | (AI on) the analysis you asked for is in the app                               |
 
 ### Changing keywords
 
@@ -286,6 +427,29 @@ A missed run doesn't lose jobs as long as fewer than 30 jobs were posted in betw
 GitHub emails you about failed runs. If something is broken for a while, disable the workflow until it's
 fixed (see above). jobwatch's own error alerts are already limited to one every 6 hours.
 
+### Web app: empty inbox, or no sign-in email
+
+- **"Almost there" screen:** you're signed in but not on the allow-list yet. Run the SQL it shows in the
+  Supabase SQL Editor.
+- **Inbox is empty:** check the Actions log for `Saved 30 listings to the database`. A warning
+  `Database not updated: … is missing` names the setting you still need from step B.
+- **No email:** check spam. Supabase's free built-in email only sends a few sign-in emails per hour,
+  so wait a bit before trying again.
+- **The email has a link but no code:** step A6, the `{{ .Token }}` line, is missing.
+- **The app still says "Demo data":** the variables from step B aren't set, or **Actions → web** hasn't
+  run since you set them.
+
+### AI: no scores
+
+Look in the **jobwatch** run log for lines starting with `AI`:
+- **`no profile yet`:** save your profile in the app.
+- **`AI is switched on but not running`:** the message names the missing piece.
+- **`daily scoring limit reached`:** the daily cap in `config.yaml` was hit.
+- **`AI scoring skipped: …`:** Claude was unavailable. This could be your plan's usage limit, or an
+  expired token (it lasts a year; run `claude setup-token` again and update the secret).
+
+Alerts keep working without scores in every one of these cases.
+
 ### Got the same job twice
 
 Rare, and by design. A job is only marked seen *after* its message is delivered, so if a run dies right after
@@ -305,10 +469,15 @@ jobwatch/
   store.py      state/seen.json: load, atomic save, prune
   filters.py    include/exclude keyword matching
   notify.py     message formatting + Telegram / ntfy / print senders
-  health.py     state/health.json: alert cooldowns, heartbeat counters
+  health.py     state/health.json: alert cooldowns, heartbeat counters, AI usage
+  db.py         (optional) saves listings and AI results to Supabase
+  ai.py         (optional) Claude fit scores and analyses via the Agent SDK
 config.yaml     settings (no secrets)
 state/          created by the first run, then committed by the workflow
-tests/          offline tests; fixtures/ holds saved copies of the search page
+supabase/schema.sql   database tables + access rules, run once in Supabase
+web/            the React web app (installable on iPhone); see web/README.md
+tests/          offline tests; fixtures/ holds saved copies of the site's pages
 .github/workflows/jobwatch.yml   the 15-minute schedule
-.github/workflows/tests.yml      runs pytest on every push
+.github/workflows/web.yml        builds the web app and publishes it to GitHub Pages
+.github/workflows/tests.yml      runs the Python and web tests on every push
 ```
