@@ -1,4 +1,4 @@
-"""One run of the pipeline: fetch -> parse -> dedupe -> filter -> notify -> save state."""
+"""One run of the pipeline: fetch -> parse -> dedupe -> filter -> notify -> save state -> save to database."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Callable
 
 from .config import Config
+from .db import JobsStore, job_rows
 from .fetch import BlockedError, HttpSettings, fetch_pages
 from .health import Health, cooldown_over
 from .notify import Message, Notifier, build_messages, redact
@@ -36,6 +37,7 @@ def run_and_report(
     seed: bool = False,
     now: datetime | None = None,
     fetch: PageFetcher = fetch_pages,
+    store: JobsStore | None = None,
 ) -> int:
     """Run once, turn failures into (rate-limited) alerts, and return the process exit code."""
     now = now or datetime.now(timezone.utc)
@@ -44,7 +46,7 @@ def run_and_report(
     exit_code = 0
 
     try:
-        summary = run(config, notifier, health, dry_run=dry_run, seed=seed, now=now, fetch=fetch)
+        summary = run(config, notifier, health, dry_run=dry_run, seed=seed, now=now, fetch=fetch, store=store)
         if summary.seeded and health.last_heartbeat is None:
             health.last_heartbeat = now  # the "jobwatch is running" message counts as today's heartbeat
         health.new_listings += summary.new
@@ -72,6 +74,7 @@ def run(
     seed: bool = False,
     now: datetime,
     fetch: PageFetcher = fetch_pages,
+    store: JobsStore | None = None,
 ) -> RunSummary:
     seen = load_seen(config.seen_path)
     # First run (no state yet) behaves like --seed so you aren't flooded with old jobs.
@@ -118,6 +121,15 @@ def run(
             "Listings found: %d | new: %d | matched: %d | notified: %d",
             summary.found, summary.new, summary.matched, summary.notified,
         )
+
+    # Last, so a database problem can never block your alerts. Every listing on the page is
+    # upserted each run, so a failed write heals itself on the next run.
+    if store is not None:
+        if dry_run:
+            log.info("Dry run: database not updated")
+        else:
+            store.upsert_jobs(job_rows(jobs, config.filter, now))
+            log.info("Saved %d listings to the database", len(jobs))
     return summary
 
 
@@ -146,7 +158,9 @@ def _send_error_alert(config: Config, notifier: Notifier, health: Health, exc: E
         log.info("Error alert suppressed (one was sent less than %dh ago)", config.health.error_alert_cooldown_hours)
         return
     secrets = config.secrets
-    detail = redact(f"{type(exc).__name__}: {exc}", secrets.telegram_bot_token, secrets.ntfy_topic)
+    detail = redact(
+        f"{type(exc).__name__}: {exc}", secrets.telegram_bot_token, secrets.ntfy_topic, secrets.supabase_secret_key
+    )
     hint = (
         "OnlineJobs.ph seems to be blocking automated requests. jobwatch will not try to get around this; "
         "see README > Troubleshooting."

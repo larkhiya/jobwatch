@@ -48,3 +48,9 @@ health:
   heartbeat_hour: 8                  # daily "alive" message on the first run after 08:00
   parser_alert_cooldown_hours: 24    # "parser may be broken" alert at most this often
   error_alert_cooldown_hours: 6      # "run failed" alert at most this often
+
+database:
+  # Supabase project URL for the web app (Settings -> API in the Supabase dashboard), e.g.
+  # https://abcdefghijkl.supabase.co. Leave empty to skip. The SECRET key goes in the
+  # SUPABASE_SECRET_KEY GitHub secret, never here.
+  supabase_url: ""

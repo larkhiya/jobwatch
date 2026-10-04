@@ -62,3 +62,23 @@ def test_bad_values_give_clear_errors(tmp_path, old, new, message):
 def test_missing_file():
     with pytest.raises(ConfigError, match="not found"):
         load_config(CONFIG_PATH.with_name("nope.yaml"))
+
+
+def test_database_is_optional_and_validated(tmp_path):
+    assert load_config(CONFIG_PATH, env={}).supabase_url is None
+    path = write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "https://abc.supabase.co"')
+    config = load_config(path, env={"SUPABASE_SECRET_KEY": "sb_secret_x"})
+    assert config.supabase_url == "https://abc.supabase.co"
+    assert "sb_secret_x" not in repr(config)
+    with pytest.raises(ConfigError, match="supabase_url"):
+        load_config(write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "http://abc"'), env={})
+
+
+def test_half_configured_database_warns_instead_of_failing(tmp_path, capsys):
+    from jobwatch.__main__ import _make_store
+
+    assert _make_store(load_config(CONFIG_PATH, env={})) is None  # not set up: silent
+    assert _make_store(load_config(CONFIG_PATH, env={"SUPABASE_SECRET_KEY": "sb_secret_x"})) is None
+    assert "database.supabase_url" in capsys.readouterr().out
+    path = write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "https://abc.supabase.co"')
+    assert _make_store(load_config(path, env={"SUPABASE_SECRET_KEY": "sb_secret_x"})) is not None

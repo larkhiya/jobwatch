@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .app import run_and_report
 from .config import DEFAULT_CONFIG_PATH, Config, ConfigError, load_config, require_secrets
+from .db import JobsStore, SupabaseJobsStore
 from .notify import Notifier, NtfyNotifier, PrintNotifier, TelegramNotifier
 
 log = logging.getLogger("jobwatch")
@@ -23,7 +24,21 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         log.error("Configuration problem: %s", exc)
         return 2
-    return run_and_report(config, notifier, dry_run=args.dry_run, seed=args.seed)
+    return run_and_report(config, notifier, dry_run=args.dry_run, seed=args.seed, store=_make_store(config))
+
+
+def _make_store(config: Config) -> JobsStore | None:
+    """The web app's database, if it's set up. Alerts work fine without it."""
+    url, key = config.supabase_url, config.secrets.supabase_secret_key
+    if url and key:
+        return SupabaseJobsStore(url, key)
+    if url or key:
+        # Half-configured: say so loudly instead of silently leaving the web app empty.
+        missing = "SUPABASE_SECRET_KEY secret" if url else "database.supabase_url in config.yaml"
+        message = f"Database not updated: {missing} is missing."
+        log.warning(message)
+        print(f"::warning title=jobwatch database::{message}")
+    return None
 
 
 def _make_notifier(config: Config) -> Notifier:

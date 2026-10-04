@@ -44,6 +44,7 @@ class Secrets:
     telegram_bot_token: str | None = field(default=None, repr=False)
     telegram_chat_id: str | None = field(default=None, repr=False)
     ntfy_topic: str | None = field(default=None, repr=False)
+    supabase_secret_key: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class Config:
     filter: KeywordFilter
     notify: NotifySettings
     health: HealthSettings
+    supabase_url: str | None = None  # optional: where the web app's database lives
     secrets: Secrets = field(default_factory=Secrets, repr=False)
 
     @property
@@ -81,6 +83,10 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH, env: Mapping[str, str] = os.en
     filters = _section(raw, "filters")
     notify = _section(raw, "notify")
     health = _section(raw, "health")
+
+    supabase_url = str((raw.get("database") or {}).get("supabase_url") or "").strip() or None
+    if supabase_url and not supabase_url.startswith("https://"):
+        raise ConfigError("database.supabase_url must start with https://")
 
     channel = notify.get("channel", "telegram")
     if channel not in ("telegram", "ntfy"):
@@ -115,10 +121,12 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH, env: Mapping[str, str] = os.en
             parser_alert_cooldown_hours=_int_in_range(health, "parser_alert_cooldown_hours", "health", 1, 168, default=24),
             error_alert_cooldown_hours=_int_in_range(health, "error_alert_cooldown_hours", "health", 1, 168, default=6),
         ),
+        supabase_url=supabase_url,
         secrets=Secrets(
             telegram_bot_token=_env(env, "TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=_env(env, "TELEGRAM_CHAT_ID"),
             ntfy_topic=_env(env, "NTFY_TOPIC"),
+            supabase_secret_key=_env(env, "SUPABASE_SECRET_KEY"),
         ),
     )
 
