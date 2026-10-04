@@ -2,7 +2,9 @@ name: jobwatch
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # every 15 minutes (UTC). GitHub may delay scheduled runs at busy times.
+    # Every 15 minutes, at :07/:22/:37/:52 (UTC). GitHub says the start of each hour is its busiest
+    # time, when scheduled runs get delayed or dropped, and recommends avoiding it.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:         # lets you start a run by hand from the Actions tab
     inputs:
       dry_run:

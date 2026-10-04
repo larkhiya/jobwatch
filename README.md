@@ -271,6 +271,13 @@ Also check **Settings → Actions → General**: Actions must be allowed for the
 GitHub's schedule is best-effort. At busy times, runs can start 5–30 minutes late or occasionally be skipped.
 The heartbeat's "runs" count shows how many actually ran. The maximum is 96 per day.
 
+The workflow runs at minutes 7, 22, 37 and 52 instead of on the hour, because GitHub says the start of each
+hour is its busiest time for scheduled runs.
+
+If there are **no** scheduled runs at all for over an hour after you set up or re-enable the workflow,
+GitHub may not have registered the schedule. Push any small change to `.github/workflows/jobwatch.yml`, or
+switch the workflow off and on again (**Actions → jobwatch → ⋯ → Disable**, then **Enable**).
+
 A missed run doesn't lose jobs as long as fewer than 30 jobs were posted in between. If the log says
 `Possible gap`, consider setting `source.pages: 2` in `config.yaml`.
 
