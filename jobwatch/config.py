@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 import yaml
 
+from .ai import AiSettings
 from .fetch import HttpSettings
 from .filters import KeywordFilter
 
@@ -45,6 +46,8 @@ class Secrets:
     telegram_chat_id: str | None = field(default=None, repr=False)
     ntfy_topic: str | None = field(default=None, repr=False)
     supabase_secret_key: str | None = field(default=None, repr=False)
+    claude_oauth_token: str | None = field(default=None, repr=False)  # from `claude setup-token`
+    anthropic_api_key: str | None = field(default=None, repr=False)  # alternative: pay-as-you-go API key
 
 
 @dataclass(frozen=True)
@@ -58,6 +61,8 @@ class Config:
     notify: NotifySettings
     health: HealthSettings
     supabase_url: str | None = None  # optional: where the web app's database lives
+    ai: AiSettings = AiSettings(False, "claude-opus-5-5", 40, 5, 2, 0)
+    app_url: str | None = None  # the web app, opened by "analysis ready" alerts
     secrets: Secrets = field(default_factory=Secrets, repr=False)
 
     @property
@@ -88,6 +93,11 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH, env: Mapping[str, str] = os.en
     supabase_url = _env(env, "SUPABASE_URL") or str((raw.get("database") or {}).get("supabase_url") or "").strip() or None
     if supabase_url and not supabase_url.startswith("https://"):
         raise ConfigError("database.supabase_url must start with https://")
+
+    ai = raw.get("ai") or {}
+    web = raw.get("web") or {}
+    if not isinstance(ai, dict) or not isinstance(web, dict):
+        raise ConfigError("config.yaml 'ai:' and 'web:' must be sections")
 
     channel = notify.get("channel", "telegram")
     if channel not in ("telegram", "ntfy"):
@@ -123,11 +133,22 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH, env: Mapping[str, str] = os.en
             error_alert_cooldown_hours=_int_in_range(health, "error_alert_cooldown_hours", "health", 1, 168, default=6),
         ),
         supabase_url=supabase_url,
+        ai=AiSettings(
+            enabled=_flag(env, "AI_ENABLED", ai.get("enabled", False)),
+            model=str(ai.get("model") or "claude-opus-5-5"),
+            max_scores_per_day=_int_in_range(ai, "max_scores_per_day", "ai", 0, 500, default=40),
+            max_analyses_per_day=_int_in_range(ai, "max_analyses_per_day", "ai", 0, 100, default=5),
+            analyses_per_run=_int_in_range(ai, "analyses_per_run", "ai", 1, 10, default=2),
+            min_score_to_alert=_int_in_range(ai, "min_score_to_alert", "ai", 0, 100, default=0),
+        ),
+        app_url=str(web.get("app_url") or "").strip() or None,
         secrets=Secrets(
             telegram_bot_token=_env(env, "TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=_env(env, "TELEGRAM_CHAT_ID"),
             ntfy_topic=_env(env, "NTFY_TOPIC"),
             supabase_secret_key=_env(env, "SUPABASE_SECRET_KEY"),
+            claude_oauth_token=_env(env, "CLAUDE_CODE_OAUTH_TOKEN"),
+            anthropic_api_key=_env(env, "ANTHROPIC_API_KEY"),
         ),
     )
 
@@ -186,3 +207,15 @@ def _keywords(section: dict[str, Any], key: str, required: bool) -> tuple[str, .
     if required and not value:
         raise ConfigError(f"filters.{key} needs at least one keyword")
     return tuple(k.strip() for k in value)
+
+
+def _flag(env: Mapping[str, str], name: str, default: object) -> bool:
+    """An on/off switch: the env var (a GitHub repository variable) wins over config.yaml."""
+    value = (env.get(name) or "").strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    if not isinstance(default, bool):
+        raise ConfigError(f"{name.lower().replace('_', '.')} must be true or false")
+    return default

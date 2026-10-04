@@ -120,3 +120,13 @@ def _snippet(card: Tag) -> str:
         link.decompose()
     text = _text(desc).rstrip("�…").rstrip()  # site truncates, sometimes mid-character
     return f"{text}…" if text else ""
+
+
+def parse_description(html: str) -> str:
+    """The full description from a single job's page (the search page only shows a preview)."""
+    node = BeautifulSoup(html, "html.parser").select_one("#job-description")
+    if node is None:
+        return ""
+    # Keep line breaks: <br> -> newline, then collapse runs of spaces within each line.
+    lines = (_WHITESPACE_RE.sub(" ", line).strip() for line in node.get_text("\n").splitlines())
+    return "\n".join(line for line in lines if line)

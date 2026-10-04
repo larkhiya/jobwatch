@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable
 
+from .ai import AiService, Score
 from .config import Config
 from .db import JobsStore, job_rows
 from .fetch import BlockedError, HttpSettings, fetch_pages
 from .health import Health, cooldown_over
-from .notify import Message, Notifier, build_messages, redact
+from .notify import Message, Notifier, analysis_ready_message, build_messages, redact
 from .parse import Job, parse_jobs
 from .store import Seen, load_seen, mark_seen, prune, save_seen, unseen
 
@@ -26,6 +27,7 @@ class RunSummary:
     new: int = 0
     matched: int = 0
     notified: int = 0
+    scored: int = 0
     seeded: bool = False
 
 
@@ -38,6 +40,7 @@ def run_and_report(
     now: datetime | None = None,
     fetch: PageFetcher = fetch_pages,
     store: JobsStore | None = None,
+    ai: AiService | None = None,
 ) -> int:
     """Run once, turn failures into (rate-limited) alerts, and return the process exit code."""
     now = now or datetime.now(timezone.utc)
@@ -46,7 +49,9 @@ def run_and_report(
     exit_code = 0
 
     try:
-        summary = run(config, notifier, health, dry_run=dry_run, seed=seed, now=now, fetch=fetch, store=store)
+        summary = run(
+            config, notifier, health, dry_run=dry_run, seed=seed, now=now, fetch=fetch, store=store, ai=ai
+        )
         if summary.seeded and health.last_heartbeat is None:
             health.last_heartbeat = now  # the "jobwatch is running" message counts as today's heartbeat
         health.new_listings += summary.new
@@ -75,6 +80,7 @@ def run(
     now: datetime,
     fetch: PageFetcher = fetch_pages,
     store: JobsStore | None = None,
+    ai: AiService | None = None,
 ) -> RunSummary:
     seen = load_seen(config.seen_path)
     # First run (no state yet) behaves like --seed so you aren't flooded with old jobs.
@@ -97,6 +103,7 @@ def run(
     # is retried on the next run instead of being silently lost.
     matched_ids = {job.id for job in matched}
     mark_seen(seen, [job for job in new if job.id not in matched_ids], now)
+    scores: dict[str, Score] = {}
     try:
         if seeding:
             log.info("Seeding: recorded %d current listings as seen without notifying", len(new))
@@ -108,7 +115,12 @@ def run(
             _warn_if_gap(jobs, new)
             for job in matched:
                 log.info("Match (%s): [%s] %s", config.filter.matched_keyword(job), job.id, job.title)
-            summary.notified = _notify(notifier, matched, seen, now, config.notify.digest_threshold)
+            if ai is not None and matched and not dry_run:
+                scores = ai.score(matched, health, now)  # never raises; {} if unavailable
+                summary.scored = len(scores)
+            to_alert = _above_threshold(matched, scores, ai, seen, now)
+            fits = {job_id: f"Fit {s.score}/100 · {s.verdict}: {s.reason}" for job_id, s in scores.items()}
+            summary.notified = _notify(notifier, to_alert, seen, now, config.notify.digest_threshold, fits)
     finally:
         removed = prune(seen, now, config.retention_days)
         if removed:
@@ -118,8 +130,8 @@ def run(
         else:
             save_seen(config.seen_path, seen)
         log.info(
-            "Listings found: %d | new: %d | matched: %d | notified: %d",
-            summary.found, summary.new, summary.matched, summary.notified,
+            "Listings found: %d | new: %d | matched: %d | scored: %d | notified: %d",
+            summary.found, summary.new, summary.matched, summary.scored, summary.notified,
         )
 
     # Last, so a database problem can never block your alerts. Every listing on the page is
@@ -130,12 +142,39 @@ def run(
         else:
             store.upsert_jobs(job_rows(jobs, config.filter, now))
             log.info("Saved %d listings to the database", len(jobs))
+            if ai is not None and not seeding:
+                _save_and_run_ai(ai, store, scores, notifier, health, now, config.app_url)
     return summary
 
 
-def _notify(notifier: Notifier, jobs: list[Job], seen: Seen, now: datetime, digest_threshold: int) -> int:
+def _above_threshold(
+    matched: list[Job], scores: dict[str, Score], ai: AiService | None, seen: Seen, now: datetime
+) -> list[Job]:
+    """With ai.min_score_to_alert set, low-scoring jobs skip the alert (they still show in the app)."""
+    threshold = ai.settings.min_score_to_alert if ai is not None else 0
+    quiet = [job for job in matched if threshold and job.id in scores and scores[job.id].score < threshold]
+    if quiet:
+        mark_seen(seen, quiet, now)
+        log.info("No alert for %d job(s) scored below %d", len(quiet), threshold)
+    return [job for job in matched if job not in quiet]
+
+
+def _save_and_run_ai(
+    ai: AiService, store: JobsStore, scores: dict[str, Score], notifier: Notifier, health: Health,
+    now: datetime, app_url: str | None,
+) -> None:
+    """Store this run's scores, then handle pending "Analyze" requests from the web app."""
+    if scores:
+        store.upsert_analyses(ai.score_rows(scores, now))  # type: ignore[attr-defined]
+    for job, analysis in ai.process_requests(health, now):
+        notifier.send(analysis_ready_message(job, analysis, app_url))
+
+
+def _notify(
+    notifier: Notifier, jobs: list[Job], seen: Seen, now: datetime, digest_threshold: int, fits: dict[str, str]
+) -> int:
     sent = 0
-    for message in build_messages(jobs, digest_threshold):
+    for message in build_messages(jobs, digest_threshold, fits):
         notifier.send(message)  # raises on failure -> remaining jobs stay unseen
         mark_seen(seen, list(message.jobs), now)
         sent += len(message.jobs)
@@ -159,7 +198,9 @@ def _send_error_alert(config: Config, notifier: Notifier, health: Health, exc: E
         return
     secrets = config.secrets
     detail = redact(
-        f"{type(exc).__name__}: {exc}", secrets.telegram_bot_token, secrets.ntfy_topic, secrets.supabase_secret_key
+        f"{type(exc).__name__}: {exc}",
+        secrets.telegram_bot_token, secrets.ntfy_topic, secrets.supabase_secret_key,
+        secrets.claude_oauth_token, secrets.anthropic_api_key,
     )
     hint = (
         "OnlineJobs.ph seems to be blocking automated requests. jobwatch will not try to get around this; "

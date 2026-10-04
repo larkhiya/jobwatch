@@ -54,3 +54,19 @@ database:
   # comes from the SUPABASE_URL repository variable instead; set it here only for local runs.
   # Leave empty to skip. The SECRET key goes in the SUPABASE_SECRET_KEY GitHub secret, never here.
   supabase_url: ""
+
+ai:
+  # Optional Claude features: a fit score in each alert, and "Analyze" in the web app.
+  # Switch on with the AI_ENABLED repository variable (true), or `enabled: true` here.
+  # Needs: the database set up, your profile saved in the web app, and the
+  # CLAUDE_CODE_OAUTH_TOKEN secret (from `claude setup-token`). Uses your Claude plan's
+  # normal usage limits, so the daily caps below keep it modest.
+  enabled: false
+  model: claude-opus-5-5
+  max_scores_per_day: 40      # new matches scored per day (one batched request per run)
+  max_analyses_per_day: 5     # "Analyze" requests handled per day
+  analyses_per_run: 2
+  min_score_to_alert: 0       # e.g. 50: only alert for jobs scored 50+ (the rest still show in the app)
+
+web:
+  app_url: ""                 # e.g. https://<you>.github.io/jobwatch/ ("analysis ready" alerts open it)

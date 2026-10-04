@@ -1,0 +1,3 @@
+# Only needed when the optional AI features are switched on (AI_ENABLED repository variable).
+# The Linux/macOS wheels include the Claude Code program the SDK runs.
+claude-agent-sdk>=0.2,<0.3

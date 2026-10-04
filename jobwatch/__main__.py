@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
+import time
 from pathlib import Path
 
+from .ai import AiService, ClaudeAgentRunner
 from .app import run_and_report
 from .config import DEFAULT_CONFIG_PATH, Config, ConfigError, load_config, require_secrets
 from .db import JobsStore, SupabaseJobsStore
+from .fetch import CRAWL_DELAY_SECONDS, fetch_html
 from .notify import Notifier, NtfyNotifier, PrintNotifier, TelegramNotifier
 
 log = logging.getLogger("jobwatch")
@@ -24,7 +28,10 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         log.error("Configuration problem: %s", exc)
         return 2
-    return run_and_report(config, notifier, dry_run=args.dry_run, seed=args.seed, store=_make_store(config))
+    store = _make_store(config)
+    return run_and_report(
+        config, notifier, dry_run=args.dry_run, seed=args.seed, store=store, ai=_make_ai(config, store)
+    )
 
 
 def _make_store(config: Config) -> JobsStore | None:
@@ -39,6 +46,34 @@ def _make_store(config: Config) -> JobsStore | None:
         log.warning(message)
         print(f"::warning title=jobwatch database::{message}")
     return None
+
+
+def _make_ai(config: Config, store: JobsStore | None) -> AiService | None:
+    """The optional Claude features, if switched on and fully set up."""
+    if not config.ai.enabled:
+        return None
+    secrets = config.secrets
+    problem = None
+    if store is None:
+        problem = "it needs the database (your profile and the results live there)"
+    elif not (secrets.claude_oauth_token or secrets.anthropic_api_key):
+        problem = "the CLAUDE_CODE_OAUTH_TOKEN secret is missing (run `claude setup-token`)"
+    if problem:
+        message = f"AI is switched on but not running: {problem}."
+        log.warning(message)
+        print(f"::warning title=jobwatch AI::{message}")
+        return None
+
+    def fetch_job_page(url: str) -> str:
+        time.sleep(CRAWL_DELAY_SECONDS)  # robots.txt crawl delay between requests to the site
+        return fetch_html(url, config.http)
+
+    runner = ClaudeAgentRunner(
+        config.ai.model,
+        secret=secrets.claude_oauth_token or secrets.anthropic_api_key,
+        cli_path=os.environ.get("CLAUDE_CLI_PATH") or None,  # only needed for local runs on Windows
+    )
+    return AiService(config.ai, runner, store, fetch_job_page)
 
 
 def _make_notifier(config: Config) -> Notifier:

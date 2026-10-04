@@ -80,23 +80,67 @@ create table if not exists public.job_actions (
 );
 
 -- ---------------------------------------------------------------------------------------------
--- Inbox: jobs joined with your decision. A job with no decision has status 'new'.
--- security_invoker makes the view obey the Row Level Security of the tables underneath.
+-- Optional AI features (unused until you switch AI on).
 
-create or replace view public.inbox with (security_invoker = true) as
+-- Your profile, which Claude compares jobs against. One row (id = 1), edited in the web app.
+create table if not exists public.profile (
+  id int primary key default 1 check (id = 1),
+  content text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+-- Claude's verdict per job: a quick score from the bot run, plus full details after "Analyze".
+create table if not exists public.analyses (
+  job_id text primary key references public.jobs (id) on delete cascade,
+  score int check (score between 0 and 100),
+  verdict text check (verdict in ('apply', 'maybe', 'skip')),
+  summary text not null default '',
+  details jsonb,                          -- strengths, gaps, red flags, tips, draft message
+  model text,
+  scored_at timestamptz,
+  analyzed_at timestamptz
+);
+
+-- "Analyze" taps from the web app, picked up by the next bot run.
+create table if not exists public.analysis_requests (
+  job_id text primary key references public.jobs (id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'done', 'failed')),
+  error text,
+  requested_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+-- ---------------------------------------------------------------------------------------------
+-- Inbox: jobs joined with your decision (no decision = 'new') and any AI results.
+-- security_invoker makes the view obey the Row Level Security of the tables underneath.
+-- Dropped and recreated so this script can add columns when you re-run it.
+
+drop view if exists public.inbox;
+create view public.inbox with (security_invoker = true) as
 select
   j.*,
   coalesce(a.status, 'new') as status,
   coalesce(a.notes, '') as notes,
-  a.updated_at as status_updated_at
+  a.updated_at as status_updated_at,
+  an.score as ai_score,
+  an.verdict as ai_verdict,
+  an.summary as ai_summary,
+  an.details as ai_details,
+  r.status as analysis_status,
+  r.error as analysis_error
 from public.jobs j
-left join public.job_actions a on a.job_id = j.id;
+left join public.job_actions a on a.job_id = j.id
+left join public.analyses an on an.job_id = j.id
+left join public.analysis_requests r on r.job_id = j.id;
 
 -- ---------------------------------------------------------------------------------------------
 -- Row Level Security
 
 alter table public.jobs enable row level security;
 alter table public.job_actions enable row level security;
+alter table public.profile enable row level security;
+alter table public.analyses enable row level security;
+alter table public.analysis_requests enable row level security;
 alter table private.allowed_users enable row level security;  -- no policies: dashboard/SQL only
 
 drop policy if exists "allowed users read jobs" on public.jobs;
@@ -109,13 +153,32 @@ create policy "allowed users manage their actions" on public.job_actions
   using ((select private.is_allowed()))
   with check ((select private.is_allowed()));
 
+drop policy if exists "allowed users manage their profile" on public.profile;
+create policy "allowed users manage their profile" on public.profile
+  for all to authenticated
+  using ((select private.is_allowed()))
+  with check ((select private.is_allowed()));
+
+drop policy if exists "allowed users read analyses" on public.analyses;
+create policy "allowed users read analyses" on public.analyses
+  for select to authenticated using ((select private.is_allowed()));
+
+drop policy if exists "allowed users manage analysis requests" on public.analysis_requests;
+create policy "allowed users manage analysis requests" on public.analysis_requests
+  for all to authenticated
+  using ((select private.is_allowed()))
+  with check ((select private.is_allowed()));
+
 -- ---------------------------------------------------------------------------------------------
 -- Privileges: grant only what each role needs (some projects grant everything by default).
 
-revoke all on public.jobs, public.job_actions, public.inbox from anon, authenticated;
-grant select on public.jobs, public.inbox to authenticated;
-grant select, insert, update, delete on public.job_actions to authenticated;
-grant all on public.jobs, public.job_actions to service_role;
+revoke all on public.jobs, public.job_actions, public.inbox, public.profile, public.analyses,
+  public.analysis_requests from anon, authenticated;
+grant select on public.jobs, public.inbox, public.analyses to authenticated;
+grant select, insert, update, delete on public.job_actions, public.analysis_requests to authenticated;
+grant select, insert, update on public.profile to authenticated;
+grant all on public.jobs, public.job_actions, public.profile, public.analyses, public.analysis_requests
+  to service_role;
 
 -- ---------------------------------------------------------------------------------------------
 -- After you log in to the web app for the first time, add yourself to the allow-list.

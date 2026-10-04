@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Mapping, Protocol
 
 import requests
 
@@ -34,28 +34,41 @@ class Notifier(Protocol):
 # --- formatting ----------------------------------------------------------------
 
 
-def job_message(job: Job) -> Message:
+def job_message(job: Job, fit: str | None = None) -> Message:
     details = " · ".join(part for part in (job.job_type, job.salary) if part)
-    lines = [details] if details else []
+    lines = [fit] if fit else []  # optional AI fit line, e.g. "Fit 82/100 · apply: strong React match"
+    if details:
+        lines.append(details)
     if job.posted:
         lines.append(f"Posted {job.posted.astimezone(PH_TZ):%b %d, %H:%M} PHT")
     lines.append(job.url)
     return Message(title=job.title, body="\n".join(lines), jobs=(job,), url=job.url)
 
 
-def digest_message(jobs: list[Job]) -> Message:
+def digest_message(jobs: list[Job], fits: Mapping[str, str] | None = None) -> Message:
+    fits = fits or {}
     items = []
     for job in jobs:
         salary = f" ({job.salary})" if job.salary else ""
-        items.append(f"• {job.title}{salary}\n  {job.url}")
+        fit = f"\n  {fits[job.id]}" if job.id in fits else ""
+        items.append(f"• {job.title}{salary}{fit}\n  {job.url}")
     return Message(title=f"{len(jobs)} new developer jobs on OnlineJobs.ph", body="\n\n".join(items), jobs=tuple(jobs))
 
 
-def build_messages(jobs: list[Job], digest_threshold: int) -> list[Message]:
+def build_messages(jobs: list[Job], digest_threshold: int, fits: Mapping[str, str] | None = None) -> list[Message]:
     """One message per job, or a single digest when there are more than `digest_threshold`."""
+    fits = fits or {}
     if len(jobs) > digest_threshold:
-        return [digest_message(jobs)]
-    return [job_message(job) for job in jobs]
+        return [digest_message(jobs, fits)]
+    return [job_message(job, fits.get(job.id)) for job in jobs]
+
+
+def analysis_ready_message(job: Job, analysis: Mapping[str, object], app_url: str | None) -> Message:
+    body = (
+        f"Fit {analysis['score']}/100 · {analysis['verdict']}\n{analysis['summary']}\n"
+        "Open jobwatch for gaps, tips and a draft message."
+    )
+    return Message(title=f"Analysis ready: {job.title}", body=body, url=app_url or job.url)
 
 
 def split_text(text: str, limit: int) -> list[str]:

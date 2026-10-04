@@ -27,8 +27,8 @@ class FakeSession:
         self.error = error
         self.posts = []
 
-    def post(self, url, params, json, headers, timeout):
-        self.posts.append({"url": url, "params": params, "json": json, "headers": headers, "timeout": timeout})
+    def request(self, method, url, params, json, headers, timeout):
+        self.posts.append({"method": method, "url": url, "params": params, "json": json, "headers": headers, "timeout": timeout})
         if self.error:
             raise self.error
         return self.response
@@ -73,6 +73,7 @@ def test_upsert_posts_all_rows_in_one_request():
     session = FakeSession()
     SupabaseJobsStore("https://abc.supabase.co/", SECRET, session).upsert_jobs([{"id": "1"}, {"id": "2"}])
     post = session.posts[0]
+    assert post["method"] == "POST"
     assert post["url"] == "https://abc.supabase.co/rest/v1/jobs"
     assert post["params"] == {"on_conflict": "id"}
     assert post["json"] == [{"id": "1"}, {"id": "2"}]

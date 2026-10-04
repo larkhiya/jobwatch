@@ -22,6 +22,13 @@ class Health:
     new_listings: int = 0
     jobs_sent: int = 0
     errors: int = 0
+    ai_input_tokens: int = 0
+    ai_output_tokens: int = 0
+    # Optional AI: per-day usage, for the daily limits in config.yaml (days are UTC, so they
+    # reset at 08:00 Philippine time).
+    ai_day: str = ""
+    ai_scores_today: int = 0
+    ai_analyses_today: int = 0
 
     @classmethod
     def load(cls, path: Path) -> Health:
@@ -50,15 +57,35 @@ class Health:
         return self.last_heartbeat.astimezone(tz).date() < local_now.date()
 
     def heartbeat_text(self) -> str:
-        return (
+        text = (
             f"jobwatch alive: {self.new_listings} new listings checked, "
             f"{self.jobs_sent} matching jobs sent, {self.runs} runs, {self.errors} errors "
             "since the last heartbeat."
         )
+        if self.ai_input_tokens or self.ai_output_tokens:
+            text += f" AI used {self.ai_input_tokens:,} input + {self.ai_output_tokens:,} output tokens."
+        return text
 
     def reset_counters(self, now: datetime) -> None:
         self.last_heartbeat = now
         self.runs = self.new_listings = self.jobs_sent = self.errors = 0
+        self.ai_input_tokens = self.ai_output_tokens = 0
+
+    def ai_budget(self, now: datetime, kind: str, daily_limit: int) -> int:
+        """How many more AI "scores" or "analyses" are allowed today."""
+        self._roll_ai_day(now)
+        return max(0, daily_limit - getattr(self, f"ai_{kind}_today"))
+
+    def record_ai(self, now: datetime, kind: str, count: int, input_tokens: int, output_tokens: int) -> None:
+        self._roll_ai_day(now)
+        setattr(self, f"ai_{kind}_today", getattr(self, f"ai_{kind}_today") + count)
+        self.ai_input_tokens += input_tokens
+        self.ai_output_tokens += output_tokens
+
+    def _roll_ai_day(self, now: datetime) -> None:
+        day = now.astimezone(timezone.utc).date().isoformat()
+        if self.ai_day != day:
+            self.ai_day, self.ai_scores_today, self.ai_analyses_today = day, 0, 0
 
 
 def cooldown_over(last_sent: datetime | None, now: datetime, hours: int) -> bool:

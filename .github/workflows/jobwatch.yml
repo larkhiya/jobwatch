@@ -24,7 +24,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15  # room for the optional AI calls
     steps:
       - uses: actions/checkout@v7
 
@@ -32,9 +32,14 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip  # reuses downloaded packages between runs
+          cache-dependency-path: requirements*.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Install AI tools (only when AI is switched on)
+        if: vars.AI_ENABLED == 'true'
+        run: pip install -r requirements-ai.txt
 
       - name: Check for new jobs
         env:
@@ -43,6 +48,8 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}  # a repository variable, shared with the web app
+          AI_ENABLED: ${{ vars.AI_ENABLED }}      # repository variable: "true" switches the AI features on
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}  # from `claude setup-token`
         run: python -m jobwatch ${{ inputs.dry_run && '--dry-run' || '' }}
 
       # Runs even if the check failed, so alert cooldowns and partial progress are

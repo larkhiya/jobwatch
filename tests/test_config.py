@@ -88,3 +88,25 @@ def test_supabase_url_env_var_wins_over_config(tmp_path):
     path = write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "https://from-config.supabase.co"')
     config = load_config(path, env={"SUPABASE_URL": "https://from-env.supabase.co"})
     assert config.supabase_url == "https://from-env.supabase.co"
+
+
+def test_ai_is_off_by_default_and_switched_by_the_variable(tmp_path):
+    assert load_config(CONFIG_PATH, env={}).ai.enabled is False
+    assert load_config(CONFIG_PATH, env={"AI_ENABLED": "true"}).ai.enabled is True
+    path = write_config(tmp_path, "  enabled: false", "  enabled: true")
+    assert load_config(path, env={"AI_ENABLED": "false"}).ai.enabled is False  # the variable wins
+    assert load_config(path, env={}).ai.enabled is True
+    config = load_config(CONFIG_PATH, env={"CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat-SECRET"})
+    assert "SECRET" not in repr(config)
+
+
+def test_ai_switched_on_but_not_set_up_warns_and_stays_off(capsys):
+    from jobwatch.__main__ import _make_ai
+
+    config = load_config(CONFIG_PATH, env={"AI_ENABLED": "true"})
+    assert _make_ai(config, store=None) is None
+    assert "needs the database" in capsys.readouterr().out
+    assert _make_ai(config, store=object()) is None
+    assert "CLAUDE_CODE_OAUTH_TOKEN" in capsys.readouterr().out
+    ready = load_config(CONFIG_PATH, env={"AI_ENABLED": "true", "CLAUDE_CODE_OAUTH_TOKEN": "t"})
+    assert _make_ai(ready, store=object()) is not None
