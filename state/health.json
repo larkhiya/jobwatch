@@ -1,9 +1,9 @@
 {
 "errors": 0,
-"jobs_sent": 0,
+"jobs_sent": 2,
 "last_error_alert": null,
 "last_heartbeat": "2026-10-04T11:29:06Z",
 "last_parser_alert": null,
-"new_listings": 30,
-"runs": 1
+"new_listings": 59,
+"runs": 2
 }
