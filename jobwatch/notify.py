@@ -11,6 +11,7 @@ import requests
 from .parse import PH_TZ, Job
 
 TELEGRAM_LIMIT = 4096  # max characters per Telegram message
+NTFY_LIMIT = 3000  # characters; ntfy's limit is 4096 *bytes*, and "₱" or "–" take 3 bytes each
 TIMEOUT_SECONDS = 20
 
 
@@ -120,11 +121,19 @@ class NtfyNotifier:
         self._session = session or requests.Session()
 
     def send(self, message: Message) -> None:
+        # ntfy turns messages over 4 KB into file attachments, which are awkward on a phone,
+        # so long digests are sent as numbered parts instead.
+        parts = split_text(message.body, NTFY_LIMIT)
+        for number, part in enumerate(parts, start=1):
+            title = f"{message.title} ({number}/{len(parts)})" if len(parts) > 1 else message.title
+            self._post(title, part, message.url)
+
+    def _post(self, title: str, body: str, url: str | None) -> None:
         # JSON publishing handles non-ASCII titles (e.g. "₱", "–"), which plain HTTP headers can't.
         # The topic goes in the body, not the URL, so it never shows up in error messages.
-        payload = {"topic": self._topic, "title": message.title, "message": message.body, "tags": ["computer"]}
-        if message.url:
-            payload["click"] = message.url
+        payload = {"topic": self._topic, "title": title, "message": body, "tags": ["computer"]}
+        if url:
+            payload["click"] = url
         try:
             response = self._session.post(self._server, json=payload, timeout=TIMEOUT_SECONDS)
         except requests.RequestException as exc:

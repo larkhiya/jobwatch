@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import timedelta, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from .fetch import HttpSettings
 from .filters import KeywordFilter
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
+_NTFY_TOPIC_RE = re.compile(r"[-_A-Za-z0-9]{1,64}")
 
 
 class ConfigError(Exception):
@@ -132,6 +134,13 @@ def require_secrets(config: Config) -> None:
         raise ConfigError(
             f"Missing environment variable(s) for notify.channel={config.notify.channel}: {', '.join(missing)}. "
             "Set them as GitHub Secrets (or locally in your shell)."
+        )
+    topic = config.secrets.ntfy_topic
+    if config.notify.channel == "ntfy" and not _NTFY_TOPIC_RE.fullmatch(topic or ""):
+        # Don't echo the value: it's a secret. Common mistake: pasting the full https://ntfy.sh/... URL.
+        raise ConfigError(
+            "NTFY_TOPIC must be just the topic name (letters, digits, '-' or '_', up to 64 characters), "
+            "not a URL like https://ntfy.sh/<topic>."
         )
 
 

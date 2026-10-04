@@ -146,6 +146,16 @@ def test_ntfy_publishes_json_with_click_link(dev_jobs):
     assert post["json"]["click"] == job.url
 
 
+def test_ntfy_splits_long_digests_into_numbered_parts(dev_jobs):
+    session = FakeSession()
+    jobs = list(dev_jobs.values()) * 2  # 60 entries, well over ntfy's 4 KB message limit
+    NtfyNotifier("my-secret-topic", session=session).send(digest_message(jobs))
+    titles = [post["json"]["title"] for post in session.posts]
+    assert len(titles) > 1
+    assert titles[0] == f"60 new developer jobs on OnlineJobs.ph (1/{len(titles)})"
+    assert all(len(post["json"]["message"].encode("utf-8")) <= 4096 for post in session.posts)
+
+
 def test_ntfy_error_redacts_topic(dev_jobs):
     response = FakeResponse(429, text="limit reached for topic my-secret-topic")
     with pytest.raises(NotifyError) as info:

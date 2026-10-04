@@ -1,7 +1,8 @@
 # jobwatch
 
 A small bot that checks [OnlineJobs.ph](https://www.onlinejobs.ph/jobseekers/jobsearch) every 15 minutes
-for newly posted developer jobs and sends each new match to your phone (Telegram, or optionally ntfy).
+for newly posted developer jobs and sends each new match to your phone through [ntfy](https://ntfy.sh)
+(a free push-notification app that needs no account), or optionally Telegram.
 It runs on GitHub Actions, so your computer doesn't need to be on, and everything it uses is free.
 
 ## How it works
@@ -39,23 +40,32 @@ fetch the newest-jobs page → parse 30 job cards → drop IDs already seen → 
 
 ---
 
-## Setup (about 15 minutes)
+## Setup (about 10 minutes)
 
-### 1. Create your Telegram bot
+### 1. Pick a secret topic name
 
-1. In Telegram, open a chat with **@BotFather** (it has a blue check mark).
-2. Send `/newbot`.
-3. Choose a display name (e.g. `My Job Alerts`), then a username that ends in `bot` (e.g. `myjobalerts_bot`).
-4. BotFather replies with a **token** that looks like `123456789:AAH...`. Copy it. This is a password:
-   never commit it, paste it in chats, or share screenshots of it.
+ntfy works with **topics**. Anyone who sends to a topic name reaches everyone subscribed to it, and there's no
+login. That means **the topic name works like a password**: make it long and random so nobody can guess it.
 
-### 2. Get your chat ID
+Generate one in PowerShell:
 
-1. Open a chat with your new bot and press **Start** (or send it any message).
-2. In a browser, open this URL with your token pasted in:
-   `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
-3. In the response, find `"chat":{"id":123456789,...`. That number is your **chat ID**.
-   If you see `"result":[]`, send your bot another message and refresh.
+```powershell
+"jobwatch-" + -join ((48..57) + (97..122) | Get-Random -Count 16 | ForEach-Object {[char]$_})
+```
+
+You'll get something like `jobwatch-k3x9q2m7v8w1z5r4`. Use only letters, digits, `-` and `_`, up to 64
+characters. Keep it private: don't commit it, post it, or share screenshots of it.
+
+### 2. Install ntfy on your phone and subscribe
+
+1. Install **ntfy** from Google Play / F-Droid (Android) or the App Store (iPhone). It's free.
+2. Open it, tap **+** (Subscribe to topic), and type your topic name *exactly*.
+   Leave the server as the default `ntfy.sh`. No account or sign-up is needed.
+3. Optional test: open `https://ntfy.sh/<your-topic>` in a browser on your computer, type a message, and
+   press send. It should pop up on your phone within a few seconds.
+
+On Android, if notifications arrive late, open the ntfy app settings and allow it to ignore battery
+optimization.
 
 ### 3. Put the code on GitHub (public repository)
 
@@ -72,17 +82,16 @@ git remote add origin https://github.com/<your-username>/jobwatch.git
 git push -u origin main
 ```
 
-### 4. Add your secrets
+### 4. Add your secret
 
 On GitHub, open your repo, then go to **Settings → Secrets and variables → Actions → New repository secret**.
-Add two secrets. The names must match exactly:
 
-| Name                 | Secret value                    |
-| -------------------- | ------------------------------- |
-| `TELEGRAM_BOT_TOKEN` | the token from BotFather        |
-| `TELEGRAM_CHAT_ID`   | the number from step 2          |
+| Name         | Secret value                                                                   |
+| ------------ | ------------------------------------------------------------------------------ |
+| `NTFY_TOPIC` | your topic name from step 1, just the name (not `https://ntfy.sh/...`)         |
 
-Secrets are encrypted, GitHub hides them in logs, and jobwatch only reads them from environment variables.
+The name `NTFY_TOPIC` must match exactly. Secrets are encrypted, GitHub hides them in logs, and jobwatch
+only reads them from environment variables.
 
 ### 5. First runs
 
@@ -91,7 +100,7 @@ Secrets are encrypted, GitHub hides them in logs, and jobwatch only reads them f
 3. Open the run and check the log of the **Check for new jobs** step. You should see `Listings found: 30`.
    That confirms GitHub's servers can reach the site. If you see `BlockedError`, read
    [Blocked](#run-failed--site-appears-to-be-blocking) below.
-4. Click **Run workflow** again, this time *without* dry_run. You should get the Telegram message
+4. Click **Run workflow** again, this time *without* dry_run. Your phone should get the notification
    **"jobwatch is running"**, and a commit "Update job state [skip ci]" appears in the repo.
 5. That's it. The schedule takes over from here (every 15 minutes, though GitHub may run it a bit late).
 
@@ -181,19 +190,24 @@ every 15 minutes, so the two would conflict. Always `git pull` before editing fi
 To send a real test message from your computer (PowerShell):
 
 ```powershell
-$env:TELEGRAM_BOT_TOKEN = "123456789:AAH..."; $env:TELEGRAM_CHAT_ID = "123456789"
+$env:NTFY_TOPIC = "your-topic-name"
 ```
 
 Then run `.venv/Scripts/python -m jobwatch` once. If there's no `state/` yet, it seeds and sends
 "jobwatch is running", which is a good end-to-end test. Afterwards, throw away the local state:
 delete `state/` if it didn't exist before, otherwise run `git checkout -- state`.
 
-### Using ntfy instead of Telegram (optional)
+### Using Telegram instead of ntfy (optional)
 
-1. Install the **ntfy** app on your phone and subscribe to a topic. Pick a long, random name like
-   `jobwatch-7f3k9q2m`. Anyone who knows the topic can read it, so treat it like a password.
-2. Add a GitHub secret `NTFY_TOPIC` with that name.
-3. In `config.yaml`, set `notify: channel: ntfy`.
+You need to be able to sign in to Telegram for this.
+
+1. In Telegram, open a chat with **@BotFather**, send `/newbot`, and pick a name and a username ending in
+   `bot`. BotFather replies with a **token** (`123456789:AAH...`). Treat it as a password.
+2. Open a chat with your new bot and press **Start**. Then open
+   `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in a browser and find `"chat":{"id":123456789`.
+   That number is your **chat ID**.
+3. Add GitHub secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
+4. In `config.yaml`, set `notify: channel: telegram`.
 
 ---
 
@@ -205,9 +219,18 @@ delete `state/` if it didn't exist before, otherwise run `git checkout -- state`
    jobs. Run a dry run and look at the filter preview to check your keywords.
 2. **Are runs happening?** Look at the Actions tab. If there are no recent runs, see
    [Workflow disabled](#workflow-disabled) below.
-3. **Are runs red?** Open one. `Missing environment variable(s)` means a secret is missing or misnamed
-   (check step 4). `Telegram HTTP 400: chat not found` means the chat ID is wrong or you never pressed
-   **Start** in your bot's chat. `Telegram HTTP 401` means the token is wrong.
+3. **Are runs red?** Open one and look at the error:
+   - `Missing environment variable(s)`: the `NTFY_TOPIC` secret is missing or misnamed (see step 4).
+   - `NTFY_TOPIC must be just the topic name`: you pasted the full URL. Paste only the part after
+     `ntfy.sh/`.
+   - `ntfy HTTP 429`: ntfy.sh's free rate limit was hit, which is rare at this volume. The jobs are retried
+     on the next run.
+4. **Runs are green and say `notified: 1`, but your phone shows nothing?** The topic in the app doesn't
+   exactly match the secret (it's case-sensitive). Re-subscribe with the exact name. On Android, also allow
+   ntfy to ignore battery optimization.
+
+With Telegram: `Telegram HTTP 400: chat not found` means the chat ID is wrong or you never pressed
+**Start** in your bot's chat. `Telegram HTTP 401` means the token is wrong.
 
 ### "Parser may be broken"
 
@@ -254,7 +277,7 @@ A missed run doesn't lose jobs as long as fewer than 30 jobs were posted in betw
 ### Lots of "Run failed" emails from GitHub
 
 GitHub emails you about failed runs. If something is broken for a while, disable the workflow until it's
-fixed (see above). jobwatch's own Telegram error alerts are already limited to one every 6 hours.
+fixed (see above). jobwatch's own error alerts are already limited to one every 6 hours.
 
 ### Got the same job twice
 

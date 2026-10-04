@@ -39,7 +39,7 @@ filters:
     - unpaid
 
 notify:
-  channel: telegram       # "telegram" or "ntfy" (secrets come from env vars / GitHub Secrets)
+  channel: ntfy           # "ntfy" (free, no account) or "telegram"; secrets come from env vars / GitHub Secrets
   digest_threshold: 5     # more new matches than this in one run -> one digest message instead
   ntfy_server: https://ntfy.sh
 
