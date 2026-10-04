@@ -42,6 +42,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}  # a repository variable, shared with the web app
         run: python -m jobwatch ${{ inputs.dry_run && '--dry-run' || '' }}
 
       # Runs even if the check failed, so alert cooldowns and partial progress are

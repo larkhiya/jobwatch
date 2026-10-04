@@ -82,3 +82,9 @@ def test_half_configured_database_warns_instead_of_failing(tmp_path, capsys):
     assert "database.supabase_url" in capsys.readouterr().out
     path = write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "https://abc.supabase.co"')
     assert _make_store(load_config(path, env={"SUPABASE_SECRET_KEY": "sb_secret_x"})) is not None
+
+
+def test_supabase_url_env_var_wins_over_config(tmp_path):
+    path = write_config(tmp_path, 'supabase_url: ""', 'supabase_url: "https://from-config.supabase.co"')
+    config = load_config(path, env={"SUPABASE_URL": "https://from-env.supabase.co"})
+    assert config.supabase_url == "https://from-env.supabase.co"

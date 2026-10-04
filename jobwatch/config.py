@@ -84,7 +84,8 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH, env: Mapping[str, str] = os.en
     notify = _section(raw, "notify")
     health = _section(raw, "health")
 
-    supabase_url = str((raw.get("database") or {}).get("supabase_url") or "").strip() or None
+    # The SUPABASE_URL env var (a GitHub repository variable shared with the web app) wins over config.yaml.
+    supabase_url = _env(env, "SUPABASE_URL") or str((raw.get("database") or {}).get("supabase_url") or "").strip() or None
     if supabase_url and not supabase_url.startswith("https://"):
         raise ConfigError("database.supabase_url must start with https://")
 
