@@ -8,3 +8,6 @@ __pycache__/
 
 # Local secrets (never commit these)
 .env
+
+# Local Claude Code / editor settings
+.claude/

@@ -35,6 +35,20 @@ $$;
 grant usage on schema private to authenticated;
 grant execute on function private.is_allowed() to authenticated;
 
+-- Lets the web app ask "am I on the allow-list?" so it can show setup help instead of an empty inbox.
+create or replace function public.am_i_allowed()
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select private.is_allowed();
+$$;
+
+revoke execute on function public.am_i_allowed() from public, anon;
+grant execute on function public.am_i_allowed() to authenticated;
+
 -- ---------------------------------------------------------------------------------------------
 -- Jobs: one row per OnlineJobs.ph listing the bot has seen. Written only by the bot.
 
@@ -60,7 +74,7 @@ create index if not exists jobs_matched_idx on public.jobs (posted_at desc) wher
 
 create table if not exists public.job_actions (
   job_id text primary key references public.jobs (id) on delete cascade,
-  status text not null check (status in ('saved', 'applied', 'skipped', 'interviewing', 'rejected', 'offer')),
+  status text not null check (status in ('new', 'saved', 'applied', 'interviewing', 'offer', 'rejected', 'skipped')),
   notes text not null default '',
   updated_at timestamptz not null default now()
 );
