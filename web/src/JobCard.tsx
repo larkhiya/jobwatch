@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AiPanel, FitBadge } from './AiPanel'
 import { timeAgo } from './filters'
 import { STATUSES, type InboxJob, type Status } from './types'
 
@@ -21,9 +22,11 @@ const STATUS_LABELS: Record<Status, string> = {
 interface JobCardProps {
   job: InboxJob
   onChange: (status: Status, notes: string) => void
+  aiEnabled: boolean
+  onAnalyze: () => void
 }
 
-export function JobCard({ job, onChange }: JobCardProps) {
+export function JobCard({ job, onChange, aiEnabled, onAnalyze }: JobCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [notesOpen, setNotesOpen] = useState(Boolean(job.notes))
   const [notes, setNotes] = useState(job.notes)
@@ -43,6 +46,7 @@ export function JobCard({ job, onChange }: JobCardProps) {
       </h2>
 
       <p className="meta">
+        {aiEnabled && <FitBadge job={job} />}
         {job.job_type && <span className="chip">{job.job_type}</span>}
         {job.salary && <span className="chip pay">{job.salary}</span>}
         {job.posted_at && <span title={new Date(job.posted_at).toLocaleString()}>{timeAgo(job.posted_at)}</span>}
@@ -56,6 +60,8 @@ export function JobCard({ job, onChange }: JobCardProps) {
       )}
 
       {job.tags.length > 0 && <p className="tags">{job.tags.join(' · ')}</p>}
+
+      {aiEnabled && <AiPanel job={job} onAnalyze={onAnalyze} />}
 
       <div className="actions">
         {QUICK_ACTIONS.map(({ status, label }) => (

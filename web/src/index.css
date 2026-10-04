@@ -326,3 +326,70 @@ a {
 .error {
   color: var(--danger);
 }
+
+/* --- AI ------------------------------------------------------------------------------------- */
+
+.chip.fit {
+  font-weight: 700;
+  border-color: transparent;
+}
+.chip.fit.good {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.chip.fit.ok {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.chip.fit.poor {
+  background: var(--bg);
+  color: var(--danger);
+  border-color: var(--border);
+}
+
+.ai {
+  border-top: 1px dashed var(--border);
+  margin: 8px 0;
+  padding-top: 8px;
+}
+
+.ai-summary {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.analysis {
+  margin-top: 8px;
+  font-size: 0.92rem;
+}
+
+.analysis h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 12px 0 4px;
+}
+
+.analysis ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.draft {
+  white-space: pre-line;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+textarea.profile {
+  width: 100%;
+  margin: 8px 0;
+  resize: vertical;
+}
+
+.small {
+  font-size: 0.82rem;
+}

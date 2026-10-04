@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import demoRows from './demo-data.json'
-import { countByTab, filterJobs, jobTypes, tabOf, timeAgo } from './filters'
+import { countByTab, filterJobs, fitBand, jobTypes, sortJobs, tabOf, timeAgo } from './filters'
 import type { InboxJob } from './types'
 
 const jobs = demoRows as InboxJob[]
@@ -63,5 +63,23 @@ describe('timeAgo', () => {
   })
   it('handles missing dates', () => {
     expect(timeAgo(null, now)).toBe('')
+  })
+})
+
+describe('sortJobs', () => {
+  it('puts the best AI fit first and unscored jobs last', () => {
+    const sorted = sortJobs(jobs, 'fit')
+    expect(sorted.slice(0, 3).map((j) => j.ai_score)).toEqual([74, 58, 35])
+    expect(sorted[3].ai_score).toBeNull()
+  })
+  it('sorts newest first', () => {
+    const sorted = sortJobs(jobs, 'newest')
+    expect(sorted.every((j, i) => i === 0 || (sorted[i - 1].posted_at ?? '') >= (j.posted_at ?? ''))).toBe(true)
+  })
+})
+
+describe('fitBand', () => {
+  it('bands scores', () => {
+    expect([fitBand(90), fitBand(70), fitBand(55), fitBand(39)]).toEqual(['good', 'good', 'ok', 'poor'])
   })
 })

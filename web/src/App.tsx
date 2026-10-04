@@ -5,13 +5,22 @@ import { Inbox } from './Inbox'
 import { Login } from './Login'
 import { supabase } from './supabase'
 
+// The demo always shows the AI features (with sample results) so you can see what they do.
+const AI_ENABLED = !supabase || import.meta.env.VITE_AI_ENABLED === 'true'
+
 export default function App() {
   return supabase ? <SignedInApp client={supabase} /> : <DemoApp />
 }
 
 function DemoApp() {
   const api = useMemo(() => demoApi(), [])
-  return <Inbox api={api} banner="Demo data: Supabase isn't configured yet, and changes reset on reload." />
+  return (
+    <Inbox
+      api={api}
+      aiEnabled={AI_ENABLED}
+      banner="Demo data: Supabase isn't configured yet, and changes reset on reload."
+    />
+  )
 }
 
 function SignedInApp({ client }: { client: SupabaseClient }) {
@@ -31,7 +40,7 @@ function SignedInApp({ client }: { client: SupabaseClient }) {
   const signOut = () => void client.auth.signOut()
   return (
     <AllowListGate api={api} email={email} onSignOut={signOut}>
-      <Inbox api={api} email={email} onSignOut={signOut} />
+      <Inbox api={api} aiEnabled={AI_ENABLED} email={email} onSignOut={signOut} />
     </AllowListGate>
   )
 }

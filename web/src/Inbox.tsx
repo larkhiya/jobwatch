@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { JobsApi } from './api'
-import { TAB_LABELS, TABS, countByTab, filterJobs, jobTypes, type Tab } from './filters'
+import { TAB_LABELS, TABS, countByTab, filterJobs, jobTypes, sortJobs, type Sort, type Tab } from './filters'
 import { JobCard } from './JobCard'
+import { Profile } from './Profile'
 import type { InboxJob, Status } from './types'
 
 interface InboxProps {
   api: JobsApi
+  aiEnabled: boolean
   email?: string
   onSignOut?: () => void
   banner?: string
 }
 
-export function Inbox({ api, email, onSignOut, banner }: InboxProps) {
+export function Inbox({ api, aiEnabled, email, onSignOut, banner }: InboxProps) {
   const [jobs, setJobs] = useState<InboxJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -19,6 +21,8 @@ export function Inbox({ api, email, onSignOut, banner }: InboxProps) {
   const [search, setSearch] = useState('')
   const [jobType, setJobType] = useState('')
   const [matchedOnly, setMatchedOnly] = useState(true)
+  const [sort, setSort] = useState<Sort>('newest')
+  const [showProfile, setShowProfile] = useState(false)
 
   const [reloadCount, setReloadCount] = useState(0)
 
@@ -67,15 +71,38 @@ export function Inbox({ api, email, onSignOut, banner }: InboxProps) {
     [api],
   )
 
+  const requestAnalysis = useCallback(
+    async (job: InboxJob) => {
+      setJobs((all) => all.map((j) => (j.id === job.id ? { ...j, analysis_status: 'pending', analysis_error: null } : j)))
+      try {
+        await api.requestAnalysis(job.id)
+      } catch (e) {
+        setJobs((all) => all.map((j) => (j.id === job.id ? job : j)))
+        setError(`Couldn't request analysis for "${job.title}": ${(e as Error).message}`)
+      }
+    },
+    [api],
+  )
+
   const counts = useMemo(() => countByTab(jobs), [jobs])
-  const visible = useMemo(() => filterJobs(jobs, { tab, search, jobType }), [jobs, tab, search, jobType])
+  const visible = useMemo(
+    () => sortJobs(filterJobs(jobs, { tab, search, jobType }), sort),
+    [jobs, tab, search, jobType, sort],
+  )
   const types = useMemo(() => jobTypes(jobs), [jobs])
+
+  if (showProfile) return <Profile api={api} onClose={() => setShowProfile(false)} />
 
   return (
     <div className="app">
       <header className="topbar">
         <h1>jobwatch</h1>
         <div className="topbar-right">
+          {aiEnabled && (
+            <button className="ghost" onClick={() => setShowProfile(true)} title="What the AI compares jobs against">
+              Profile
+            </button>
+          )}
           <button className="ghost" onClick={reload} disabled={loading} title="Reload jobs">
             {loading ? 'Loading…' : 'Refresh'}
           </button>
@@ -111,6 +138,12 @@ export function Inbox({ api, email, onSignOut, banner }: InboxProps) {
             <option key={t}>{t}</option>
           ))}
         </select>
+        {aiEnabled && (
+          <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
+            <option value="newest">Newest first</option>
+            <option value="fit">Best fit first</option>
+          </select>
+        )}
         <label className="toggle">
           <input type="checkbox" checked={matchedOnly} onChange={(e) => changeMatchedOnly(e.target.checked)} />
           Keyword matches only
@@ -126,7 +159,13 @@ export function Inbox({ api, email, onSignOut, banner }: InboxProps) {
           </p>
         )}
         {visible.map((job) => (
-          <JobCard key={job.id} job={job} onChange={(status, notes) => void updateJob(job, status, notes)} />
+          <JobCard
+            key={job.id}
+            job={job}
+            aiEnabled={aiEnabled}
+            onChange={(status, notes) => void updateJob(job, status, notes)}
+            onAnalyze={() => void requestAnalysis(job)}
+          />
         ))}
       </main>
     </div>

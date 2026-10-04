@@ -66,3 +66,17 @@ export function timeAgo(iso: string | null, now: Date = new Date()): string {
   if (days <= 30) return `${days}d ago`
   return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+export type Sort = 'newest' | 'fit'
+
+/** Newest first, or best AI fit first (unscored jobs after scored ones, newest first among equals). */
+export function sortJobs(jobs: InboxJob[], sort: Sort): InboxJob[] {
+  const byNewest = (a: InboxJob, b: InboxJob) => (b.posted_at ?? '').localeCompare(a.posted_at ?? '')
+  if (sort === 'newest') return [...jobs].sort(byNewest)
+  return [...jobs].sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1) || byNewest(a, b))
+}
+
+/** Colour band for a fit score: good (70+), ok (40-69), poor (<40). */
+export function fitBand(score: number): 'good' | 'ok' | 'poor' {
+  return score >= 70 ? 'good' : score >= 40 ? 'ok' : 'poor'
+}

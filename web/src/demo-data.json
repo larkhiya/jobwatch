@@ -17,7 +17,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742998",
@@ -33,7 +39,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": 58,
+  "ai_verdict": "maybe",
+  "ai_summary": "GoHighLevel isn't in your profile, but the API work fits.",
+  "ai_details": null,
+  "analysis_status": "pending",
+  "analysis_error": null
  },
  {
   "id": "1742978",
@@ -49,7 +61,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742352",
@@ -68,7 +86,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742258",
@@ -88,7 +112,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742140",
@@ -104,7 +134,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742878",
@@ -124,7 +160,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742846",
@@ -144,7 +186,31 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "applied",
   "notes": "Sent portfolio + 2 WP samples.",
-  "status_updated_at": "2026-10-03T14:00:00+00:00"
+  "status_updated_at": "2026-10-03T14:00:00+00:00",
+  "ai_score": 74,
+  "ai_verdict": "apply",
+  "ai_summary": "Strong WordPress match; the team-lead part is a stretch.",
+  "ai_details": {
+   "score": 74,
+   "verdict": "apply",
+   "summary": "Strong WordPress match; the team-lead part is a stretch.",
+   "strengths": [
+    "3 years of WordPress theme and Elementor work",
+    "Pay ($12-16/hr) is above your expected rate"
+   ],
+   "gaps": [
+    "They want someone who already leads a team",
+    "Project-management experience isn't in your profile"
+   ],
+   "red_flags": [],
+   "how_to_improve": [
+    "Describe any time you reviewed or mentored others' code",
+    "Add one multi-site case study to your portfolio"
+   ],
+   "application_message": "Hi Truffle Digital team! I'm a WordPress developer with 3 years of theme and Elementor work..."
+  },
+  "analysis_status": "done",
+  "analysis_error": null
  },
  {
   "id": "1742816",
@@ -162,7 +228,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742808",
@@ -181,7 +253,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "skipped",
   "notes": "",
-  "status_updated_at": "2026-10-03T14:00:00+00:00"
+  "status_updated_at": "2026-10-03T14:00:00+00:00",
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1741650",
@@ -201,7 +279,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742779",
@@ -217,7 +301,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1741557",
@@ -233,7 +323,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742698",
@@ -253,7 +349,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742645",
@@ -273,7 +375,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742640",
@@ -293,7 +401,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742531",
@@ -309,7 +423,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742498",
@@ -329,7 +449,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742464",
@@ -349,7 +475,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742457",
@@ -369,7 +501,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742455",
@@ -388,7 +526,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742454",
@@ -404,7 +548,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742433",
@@ -424,7 +574,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1732553",
@@ -444,7 +600,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742423",
@@ -464,7 +626,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1359349",
@@ -484,7 +652,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742357",
@@ -504,7 +678,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742349",
@@ -523,7 +703,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742338",
@@ -543,7 +729,13 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "saved",
   "notes": "",
-  "status_updated_at": "2026-10-03T14:00:00+00:00"
+  "status_updated_at": "2026-10-03T14:00:00+00:00",
+  "ai_score": 35,
+  "ai_verdict": "skip",
+  "ai_summary": "Needs 7-10 years of Java; your profile has none.",
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  },
  {
   "id": "1742325",
@@ -563,6 +755,12 @@
   "first_seen_at": "2026-10-03T14:00:00+00:00",
   "status": "new",
   "notes": "",
-  "status_updated_at": null
+  "status_updated_at": null,
+  "ai_score": null,
+  "ai_verdict": null,
+  "ai_summary": null,
+  "ai_details": null,
+  "analysis_status": null,
+  "analysis_error": null
  }
 ]
