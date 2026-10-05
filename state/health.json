@@ -5,10 +5,10 @@
 "ai_output_tokens": 0,
 "ai_scores_today": 0,
 "errors": 0,
-"jobs_sent": 3,
+"jobs_sent": 4,
 "last_error_alert": null,
 "last_heartbeat": "2026-10-05T00:03:25Z",
 "last_parser_alert": null,
-"new_listings": 106,
-"runs": 12
+"new_listings": 125,
+"runs": 13
 }
